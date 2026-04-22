@@ -48,7 +48,7 @@ A custom Vellum assistant skill that exposes three tools:
 - `get_todays_apod` - fetches today's Astronomy Picture of the Day
 - `get_celestial_bodies` - returns the full catalog
 
-This turns a database query into a conversational experience: *"What's in the sky tonight from 169 Madison Ave?"*
+This turns a database query into a conversational experience: *"What's in the sky tonight from *this address*?"*
 
 ## Key Design Decisions
 
