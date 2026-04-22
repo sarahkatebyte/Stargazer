@@ -1,0 +1,30 @@
+[
+  {
+    "name": "get_celestial_bodies",
+    "description": "Get all celestial bodies in the Stargazer collection, including their coordinates and type",
+    "parameters": {}
+  },
+  {
+    "name": "get_todays_apod",
+    "description": "Get today's NASA Astronomy Picture of the Day, including the title, explanation, and image URL",
+    "parameters": {}
+  },
+  {
+    "name": "get_visible_tonight",
+    "description": "Calculate which celestial bodies are visible tonight from a given latitude and longitude, including their altitude and compass direction",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "latitude": {
+          "type": "number",
+          "description": "Observer's latitude in decimal degrees"
+        },
+        "longitude": {
+          "type": "number",
+          "description": "Observer's longitude in decimal degrees"
+        }
+      },
+      "required": ["latitude", "longitude"]
+    }
+  }
+]
