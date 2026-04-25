@@ -9,3 +9,6 @@ frontend/dist/
 db.sqlite3
 *.egg-info/
 .DS_Store
+CHEAT_SHEET.md
+GLOSSARY.md
+WORKFLOW.md
