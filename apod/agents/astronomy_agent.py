@@ -48,18 +48,49 @@ def search_previous_apods(name):
 
 def save_celestial_body(name, body_type, right_ascension, declination, apod_date, description=""):
     from apod.models import Apod
+
+    # Step 1: Validate coordinate ranges
+    range_valid, range_msg = validate_range(right_ascension, declination)
+    if not range_valid:
+        logger.warning(f"Invalid coordinates for '{name}': {range_msg}")
+        return f"VALIDATION ERROR: {range_msg}. Please provide valid coordinates."
+
+    # Step 2: Cross-reference with SIMBAD
+    validation = validate_against_simbad(name, right_ascension, declination)
+    logger.info(f"SIMBAD validation for '{name}': {validation['message']}")
+
+    # Step 3: Save (even if SIMBAD disagrees, but log the discrepancy)
+    defaults = {
+        "body_type": body_type,
+        "right_ascension": right_ascension,
+        "declination": declination,
+        "description": description,
+    }
+
+    # If SIMBAD found a match, enrich the description with canonical info
+    if validation["simbad_found"] and validation["simbad_data"]:
+        simbad = validation["simbad_data"]
+        canonical_note = f" [SIMBAD: {simbad['main_id']}, type: {simbad['object_type']}]"
+        if description:
+            defaults["description"] = description + canonical_note
+        else:
+            defaults["description"] = canonical_note
+
     body, created = CelestialBody.objects.get_or_create(
         name=name,
-        defaults={
-            "body_type": body_type,
-            "right_ascension": right_ascension,
-            "declination": declination,
-            "description": description,
-        }
+        defaults=defaults,
     )
     apod = Apod.objects.get(date=apod_date)
     Collection.objects.get_or_create(apod=apod, celestial_body=body)
-    return f"Saved {name} and linked to APOD {apod_date}."
+
+    # Build response message
+    result = f"Saved {name} and linked to APOD {apod_date}."
+    if validation["simbad_found"]:
+        result += f" SIMBAD: {validation['message']}"
+    if not validation["validated"]:
+        result += " WARNING: Coordinate discrepancy detected."
+
+    return result
 
 def execute_tool(name, tool_input):
     if name == "search_previous_apods":
@@ -78,32 +109,6 @@ def analyze_apod(apod):
             model="claude-haiku-4-5",
             max_tokens=1024,
             system="You are an expert astronomer. Analyze this Astronomy Picture of the Day. Identify the primary celestial body featured, check if it has been collected before, and save it. When saving, provide the real right ascension and declination from your astronomy knowledge — for example '05h 35m 17s' and '-05° 23' 28\"'. For objects with variable positions like comets, provide their approximate coordinates at time of observation if known, otherwise use 'unknown'. When naming celestial bodies, always use the scientific designation without prefixes — for example use 'C/2025 R3 (PanSTARRS)' not 'Comet C/2025 R3 (PanSTARRS)'.",
-            tools=TOOLS,
-            messages=messages,
-            cache_control={"type": "ephemeral"},
-        )
-
-        if response.stop_reason == "end_turn":
-            break
-
-        tool_results = []
-        for block in response.content:
-            if block.type == "tool_use":
-                result = execute_tool(block.name, block.input)
-                tool_results.append({
-                    "type": "tool_result",
-                    "tool_use_id": block.id,
-                    "content": result
-                })
-
-        if not tool_results:
-            break
-
-        messages.append({"role": "assistant", "content": response.content})
-        messages.append({"role": "user", "content": tool_results})
-
-    return response
-my knowledge — for example '05h 35m 17s' and '-05° 23' 28\"'. For objects with variable positions like comets, provide their approximate coordinates at time of observation if known, otherwise use 'unknown'. When naming celestial bodies, always use the scientific designation without prefixes — for example use 'C/2025 R3 (PanSTARRS)' not 'Comet C/2025 R3 (PanSTARRS)'.",
             tools=TOOLS,
             messages=messages,
             cache_control={"type": "ephemeral"},

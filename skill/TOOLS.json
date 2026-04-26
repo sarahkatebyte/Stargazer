@@ -11,20 +11,37 @@
   },
   {
     "name": "get_visible_tonight",
-    "description": "Calculate which celestial bodies are visible tonight from a given latitude and longitude, including their altitude and compass direction",
+    "description": "Calculate which celestial bodies are visible tonight from a given location. Accepts a street address (preferred) or latitude/longitude coordinates.",
     "parameters": {
       "type": "object",
       "properties": {
+        "address": {
+          "type": "string",
+          "description": "Street address, city, or place name (e.g. '173 Hart Street Brooklyn NY')"
+        },
         "latitude": {
           "type": "number",
-          "description": "Observer's latitude in decimal degrees"
+          "description": "Observer's latitude in decimal degrees (fallback if no address)"
         },
         "longitude": {
           "type": "number",
-          "description": "Observer's longitude in decimal degrees"
+          "description": "Observer's longitude in decimal degrees (fallback if no address)"
+        }
+      }
+    }
+  },
+  {
+    "name": "lookup_simbad",
+    "description": "Look up a celestial body in the SIMBAD astronomical reference database. Returns the canonical scientific name, authoritative coordinates, object type, and checks if the body is in the local Stargazer database. Use this when the user asks for details about a specific celestial object or wants to verify astronomical data.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the celestial body to look up (e.g. 'Crab Nebula', 'Betelgeuse', 'M31')"
         }
       },
-      "required": ["latitude", "longitude"]
+      "required": ["name"]
     }
   }
 ]
