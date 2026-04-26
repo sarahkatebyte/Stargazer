@@ -4,6 +4,27 @@ import math
 import urllib.request
 from datetime import datetime, timezone
 
+
+def geocode_address(address):
+    """Convert an address string to lat/lon using Nominatim (OpenStreetMap)."""
+    url = 'https://nominatim.openstreetmap.org/search?q={}&format=json&limit=1'.format(
+        urllib.request.quote(address)
+    )
+    req = urllib.request.Request(url, headers={
+        'User-Agent': 'Stargazer/1.0',
+        'Accept-Language': 'en',
+    })
+    response = urllib.request.urlopen(req)
+    data = json.loads(response.read())
+    if not data:
+        raise ValueError(f'Could not geocode address: {address}')
+    return {
+        'lat': float(data[0]['lat']),
+        'lon': float(data[0]['lon']),
+        'display_name': data[0]['display_name'],
+    }
+
+
 def parse_ra(ra):
     import re
     match = re.search(r'(\d+)h\s*(\d+)m', ra)
@@ -11,12 +32,14 @@ def parse_ra(ra):
         return None
     return int(match.group(1)) + int(match.group(2)) / 60
 
+
 def parse_dec(dec):
     import re
     match = re.search(r'([+-]?\d+)°', dec)
     if not match:
         return None
     return int(match.group(1))
+
 
 def ra_dec_to_alt_az(ra_hours, dec_deg, lat, lon):
     now = datetime.now(timezone.utc)
@@ -38,13 +61,27 @@ def ra_dec_to_alt_az(ra_hours, dec_deg, lat, lon):
     )
     return math.degrees(alt), (math.degrees(az) + 360) % 360
 
+
 def az_to_direction(az):
     dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
     return dirs[round(az / 45) % 8]
 
+
 args = json.loads(sys.argv[1])
-lat = args['latitude']
-lon = args['longitude']
+
+# Resolve location: address takes priority, fall back to lat/lon
+if 'address' in args and args['address']:
+    geo = geocode_address(args['address'])
+    lat = geo['lat']
+    lon = geo['lon']
+    location_name = geo['display_name']
+elif 'latitude' in args and 'longitude' in args:
+    lat = args['latitude']
+    lon = args['longitude']
+    location_name = f'{lat}, {lon}'
+else:
+    print(json.dumps({'error': 'Provide either an address or latitude/longitude'}))
+    sys.exit(1)
 
 response = urllib.request.urlopen('http://localhost:8000/api/celestial-bodies/')
 bodies = json.loads(response.read())
@@ -66,4 +103,9 @@ for body in bodies:
     })
 
 results.sort(key=lambda x: x['altitude'], reverse=True)
-print(json.dumps(results))
+print(json.dumps({
+    'location': location_name,
+    'latitude': lat,
+    'longitude': lon,
+    'bodies': results,
+}))
