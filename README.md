@@ -114,7 +114,6 @@ npm run dev
 ---
 
 Built by Sarah Kate · Brooklyn, NY
-ntic tool use with prompt caching)
 - Nominatim / OpenStreetMap (geocoding)
 - NASA APOD API
 
