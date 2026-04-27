@@ -108,6 +108,45 @@ npm run dev
 - Claude Haiku (agentic tool use with prompt caching)
 - Nominatim / OpenStreetMap (geocoding)
 - NASA APOD API
+- SIMBAD (CDS Strasbourg - deep-sky object database)
+- JPL Horizons (NASA/JPL - solar system ephemeris)
+
+---
+
+Built by Sarah Kate · Brooklyn, NY
+ntic tool use with prompt caching)
+- Nominatim / OpenStreetMap (geocoding)
+- NASA APOD API
+
+---
+
+Built by Sarah Kate · Brooklyn, NY
+ackend
+python manage.py runserver
+
+# Frontend (separate terminal)
+cd frontend
+npm install
+npm run dev
+```
+
+## Management Commands
+
+| Command | Purpose |
+|---|---|
+| `python manage.py fetch_apod [date]` | Fetch a single APOD, run the agent on new entries |
+| `python manage.py bulk_import_apods --start YYYY-MM-DD` | Backfill APODs from NASA (images only, no agent) |
+| `python manage.py seed_bodies` | Seed 12 well-known celestial bodies |
+
+## Tech Stack
+
+- Python 3.11 / Django 5.2 / DRF
+- PostgreSQL
+- React 19 / TypeScript / Vite
+- astronomy-engine (client-side celestial mechanics)
+- Claude Haiku (agentic tool use with prompt caching)
+- Nominatim / OpenStreetMap (geocoding)
+- NASA APOD API
 
 ---
 

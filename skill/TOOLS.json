@@ -43,5 +43,23 @@
       },
       "required": ["name"]
     }
+  },
+  {
+    "name": "lookup_jpl_horizons",
+    "description": "Look up a solar system body (planet, moon, comet, asteroid) in NASA/JPL's Horizons system. Returns the body's current RA/Dec coordinates for a given date. Use this for objects INSIDE the solar system - for deep-sky objects (stars, nebulae, galaxies) use lookup_simbad instead.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the solar system body (e.g. 'Mars', 'Saturn', 'Moon', 'C/2025 R3')"
+        },
+        "date": {
+          "type": "string",
+          "description": "Observation date in YYYY-MM-DD format (defaults to today)"
+        }
+      },
+      "required": ["name"]
+    }
   }
 ]
