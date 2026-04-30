@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import SkyMap from './SkyMap'
+import AladinViewer from './AladinViewer'
 import StarFinder from './StarFinder'
 
 type Apod = {
@@ -34,6 +34,9 @@ function App() {
   const [bodies, setBodies] = useState<CelestialBody[]>([])
   const [collections, setCollections] = useState<Collection[]>([])
   const [selected, setSelected] = useState<{ body: CelestialBody, altitude: number, azimuth: number } | null>(null)
+  // Target coordinates for the sky viewer (in degrees)
+  const [viewTarget, setViewTarget] = useState<{ ra: number, dec: number } | null>(null)
+  const [viewFov, setViewFov] = useState(60) // Field of view in degrees
 
   useEffect(() => {
     fetch('/api/apods/').then(res => res.json()).then(setApods)
@@ -54,13 +57,45 @@ function App() {
     return apods.find(a => a.id === collection.apod)
   }
 
+  // Convert "5h 34m" → degrees for Aladin Lite
+  function raToDegreees(ra: string): number | null {
+    const match = ra.match(/(\d+)h\s*(\d+)m/)
+    if (!match) return null
+    return (parseInt(match[1]) + parseInt(match[2]) / 60) * 15
+  }
+  function decToDegrees(dec: string): number | null {
+    const match = dec.match(/([+-]?\d+)°\s*(\d+)?/)
+    if (!match) return null
+    const d = parseInt(match[1])
+    const m = match[2] ? parseInt(match[2]) / 60 : 0
+    return d >= 0 ? d + m : d - m
+  }
+
+  function handleBodySelect(body: CelestialBody, position: { altitude: number, azimuth: number, body: CelestialBody, visible: boolean }) {
+    setSelected({ body, altitude: position.altitude, azimuth: position.azimuth })
+
+    // Pan the sky viewer to this body's coordinates
+    const ra = raToDegreees(body.right_ascension)
+    const dec = decToDegrees(body.declination)
+    if (ra !== null && dec !== null) {
+      setViewTarget({ ra, dec })
+      setViewFov(1) // Zoom in to 1 degree FoV when selecting a body
+    }
+  }
+
   return (
     <div>
       <h1>Stargazer</h1>
-      <SkyMap bodies={bodies} />
+      <AladinViewer
+        bodies={bodies}
+        targetRA={viewTarget?.ra}
+        targetDec={viewTarget?.dec}
+        fov={viewFov}
+        selectedBody={selected?.body.name}
+      />
       <StarFinder
         bodies={bodies}
-        onBodySelect={(body, position) => setSelected({ body, altitude: position.altitude, azimuth: position.azimuth })}
+        onBodySelect={handleBodySelect}
       />
       {selected && (
         <div style={{

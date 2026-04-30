@@ -1,19 +1,19 @@
 # 🔭 Stargazer
 
-A full-stack astronomy platform that ingests NASA's Astronomy Picture of the Day, uses an AI agent to identify and catalog celestial bodies, and lets you explore what's visible in the night sky from any address.
+A full-stack astronomy platform that ingests NASA's Astronomy Picture of the Day, uses an AI agent to identify and catalog celestial bodies, and lets you explore what's visible in the night sky from any address — with an interactive sky viewer powered by real telescope survey imagery.
 
 ## Architecture
 
 ```
-NASA APOD API → Django ingestion → Claude agent (tool use) → PostgreSQL
-                                                                  ↓
-                                              React frontend ← REST API → Vellum skill
+NASA APOD API → Django ingestion → Claude agent (tool use) → SIMBAD/JPL validation → PostgreSQL
+                                                                                          ↓
+                                       Aladin Lite sky viewer ← React frontend ← REST API → Vellum skill (Astrid)
 ```
 
 **Backend:** Django + Django REST Framework + PostgreSQL
-**Frontend:** React + TypeScript + Vite + astronomy-engine
-**AI Agent:** Claude Haiku with agentic tool-use loop
-**Skill Layer:** Vellum custom skill with address geocoding
+**Frontend:** React + TypeScript + Vite + astronomy-engine + Aladin Lite
+**AI Agent:** Claude Haiku with agentic tool-use loop + 4-layer validation pipeline
+**Skill Layer:** Vellum custom skill with multi-tool chaining and agentic reasoning
 
 ## How It Works
 
@@ -24,42 +24,64 @@ NASA APOD API → Django ingestion → Claude agent (tool use) → PostgreSQL
 1. Reads the APOD title and explanation
 2. Identifies the primary celestial body
 3. Checks the database for duplicates via tool use
-4. Saves the body with real RA/Dec coordinates (provided by Claude's astronomy knowledge)
+4. Saves the body with real RA/Dec coordinates
 5. Links it to the APOD through a Collection join table
 
 The agent uses two tools (`search_previous_apods`, `save_celestial_body`) and runs up to 8 turns with prompt caching enabled. All writes are idempotent via `get_or_create`.
 
+### Coordinate Validation Pipeline
+
+Every celestial body goes through a 4-layer validation pipeline before being saved:
+
+1. **Claude extraction** — identifies the body and provides initial coordinates
+2. **SIMBAD cross-reference** — validates against CDS Strasbourg's authoritative deep-sky database
+3. **JPL Horizons fallback** — for solar system objects (planets, moons, comets, asteroids)
+4. **Graceful degradation** — if neither source can verify, the body is accepted with an `unverified` flag rather than silently rejected
+
 ### The Data Model
 
-- **Apod** - NASA APOD entries keyed on date (title, explanation, image URLs, media type)
-- **CelestialBody** - Astronomy catalog (name, type, RA/Dec, description)
-- **Collection** - Join table with `collected_at` timestamp (explicit model, not M2M, for metadata support)
+- **Apod** — NASA APOD entries keyed on date (title, explanation, image URLs, media type)
+- **CelestialBody** — Astronomy catalog (name, type, RA/Dec, description, verification status)
+- **Collection** — Join table with `collected_at` timestamp (explicit model, not M2M, for metadata support)
 
 ### The Frontend
 
-- **SkyMap** - SVG equatorial coordinate map with RA/Dec grid, glowing body markers, and a background star field
-- **StarFinder** - Address input → Nominatim geocoding → real-time altitude/azimuth calculation via `astronomy-engine`. Shows what's visible tonight from any location
-- **Collection Grid** - Browse collected bodies with their linked APOD images
+- **Aladin Lite Sky Viewer** — Interactive sky viewer from CDS (Strasbourg) embedded in React. Renders real telescope survey imagery (Digitized Sky Survey). Pans to any celestial body's RA/Dec coordinates when selected. Same organization that powers SIMBAD validation.
+- **StarFinder** — Address input → Nominatim geocoding → real-time altitude/azimuth calculation via `astronomy-engine`. Shows what's visible tonight from any location with Bortle scale light pollution assessment.
+- **Collection Grid** — Browse collected bodies with their linked APOD images
 
-### The Vellum Skill
+### Light Pollution: Bortle Scale
 
-A custom Vellum assistant skill that exposes three tools:
-- `get_visible_tonight` - accepts an address or lat/lon, geocodes it, and returns visible bodies with altitude and compass direction
-- `get_todays_apod` - fetches today's Astronomy Picture of the Day
-- `get_celestial_bodies` - returns the full catalog
+Visibility calculations include a Bortle class assessment for any location. A Bortle 8 (Brooklyn) shows 4 naked-eye objects while a Bortle 5 (Hudson, NY) shows 8 — same night, same sky, different experience. Equipment recommendations (naked eye, binoculars, telescope) adjust per location.
 
-This turns a database query into a conversational experience: *"What's in the sky tonight from *this address*?"*
+### The Vellum Skill (Astrid)
+
+A custom Vellum assistant skill with agentic multi-tool chaining. Five tools:
+
+| Tool | Purpose |
+|---|---|
+| `get_visible_tonight` | Address → geocode → visible bodies with altitude, compass direction, Bortle assessment |
+| `get_todays_apod` | Today's NASA Astronomy Picture of the Day |
+| `get_celestial_bodies` | Full Stargazer catalog |
+| `lookup_simbad` | Deep-sky object validation (stars, nebulae, galaxies) via CDS |
+| `lookup_jpl_horizons` | Solar system ephemeris (planets, moons, comets) via NASA/JPL |
+
+Astrid doesn't just answer questions — she chains tools together. Ask "what's above me tonight?" and she'll check visibility, cross-reference with today's APOD, and connect them: *"The Pleiades are above you right now — and they're actually today's NASA picture of the day."*
 
 ## Key Design Decisions
 
 | Decision | Rationale |
 |---|---|
 | Explicit Collection model over ManyToManyField | Needed `collected_at` metadata on the relationship |
-| Claude provides RA/Dec, no lookup table | Generalizes to any celestial object without maintaining a dictionary |
-| Haiku over Sonnet for the agent | Structured extraction task, 10x cheaper, fast enough for tool use |
+| Bounded agent loop (8 turns max) | Prevents runaway API costs; agent must converge |
+| Read-before-write via `get_or_create` | Idempotent writes prevent duplicate catalog entries |
+| SIMBAD + JPL dual validation | Different authorities for different object types; graceful fallback |
+| Fail-closed validation with `unverified` flag | Never silently wrong; surfaces uncertainty to the user |
 | Client-side astronomy calculations | Zero server load, real-time updates, works offline after initial data fetch |
-| Read-only API | Writes happen through management commands and the agent, clean separation of concerns |
+| Aladin Lite over custom WebGL | Real telescope imagery from CDS, battle-tested, same ecosystem as SIMBAD |
+| Read-only API | Writes happen through management commands and the agent, clean separation |
 | Nominatim over Google Geocoding | Free, no API key, sufficient accuracy for sky observation |
+| Haiku over Sonnet for the agent | Structured extraction task, 10x cheaper, fast enough for tool use |
 
 ## Setup
 
@@ -104,46 +126,11 @@ npm run dev
 - Python 3.11 / Django 5.2 / DRF
 - PostgreSQL
 - React 19 / TypeScript / Vite
+- Aladin Lite v3 (CDS Strasbourg - interactive sky viewer)
 - astronomy-engine (client-side celestial mechanics)
 - Claude Haiku (agentic tool use with prompt caching)
-- Nominatim / OpenStreetMap (geocoding)
-- NASA APOD API
 - SIMBAD (CDS Strasbourg - deep-sky object database)
 - JPL Horizons (NASA/JPL - solar system ephemeris)
-
----
-
-Built by Sarah Kate · Brooklyn, NY
-- Nominatim / OpenStreetMap (geocoding)
-- NASA APOD API
-
----
-
-Built by Sarah Kate · Brooklyn, NY
-ackend
-python manage.py runserver
-
-# Frontend (separate terminal)
-cd frontend
-npm install
-npm run dev
-```
-
-## Management Commands
-
-| Command | Purpose |
-|---|---|
-| `python manage.py fetch_apod [date]` | Fetch a single APOD, run the agent on new entries |
-| `python manage.py bulk_import_apods --start YYYY-MM-DD` | Backfill APODs from NASA (images only, no agent) |
-| `python manage.py seed_bodies` | Seed 12 well-known celestial bodies |
-
-## Tech Stack
-
-- Python 3.11 / Django 5.2 / DRF
-- PostgreSQL
-- React 19 / TypeScript / Vite
-- astronomy-engine (client-side celestial mechanics)
-- Claude Haiku (agentic tool use with prompt caching)
 - Nominatim / OpenStreetMap (geocoding)
 - NASA APOD API
 
