@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import AladinViewer from './AladinViewer'
-import StarFinder from './StarFinder'
+import AstridChat from './AstridChat'
 
 type Apod = {
   id: number
@@ -33,10 +33,8 @@ function App() {
   const [apods, setApods] = useState<Apod[]>([])
   const [bodies, setBodies] = useState<CelestialBody[]>([])
   const [collections, setCollections] = useState<Collection[]>([])
-  const [selected, setSelected] = useState<{ body: CelestialBody, altitude: number, azimuth: number } | null>(null)
-  // Target coordinates for the sky viewer (in degrees)
   const [viewTarget, setViewTarget] = useState<{ ra: number, dec: number } | null>(null)
-  const [viewFov, setViewFov] = useState(60) // Field of view in degrees
+  const [viewFov, setViewFov] = useState(10)
 
   useEffect(() => {
     fetch('/api/apods/').then(res => res.json()).then(setApods)
@@ -46,19 +44,14 @@ function App() {
 
   const collectedIds = new Set(collections.map(c => c.celestial_body))
 
-  function azimuthToDirection(az: number): string {
-    const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
-    return dirs[Math.round(az / 45) % 8]
-  }
-
   const getApodForBody = (bodyId: number): Apod | undefined => {
     const collection = collections.find(c => c.celestial_body === bodyId)
     if (!collection) return undefined
     return apods.find(a => a.id === collection.apod)
   }
 
-  // Convert "5h 34m" → degrees for Aladin Lite
-  function raToDegreees(ra: string): number | null {
+  // Convert "5h 34m" -> degrees for Aladin Lite
+  function raToDegrees(ra: string): number | null {
     const match = ra.match(/(\d+)h\s*(\d+)m/)
     if (!match) return null
     return (parseInt(match[1]) + parseInt(match[2]) / 60) * 15
@@ -71,15 +64,13 @@ function App() {
     return d >= 0 ? d + m : d - m
   }
 
-  function handleBodySelect(body: CelestialBody, position: { altitude: number, azimuth: number, body: CelestialBody, visible: boolean }) {
-    setSelected({ body, altitude: position.altitude, azimuth: position.azimuth })
-
-    // Pan the sky viewer to this body's coordinates
-    const ra = raToDegreees(body.right_ascension)
+  // When a collection card is clicked, pan the sky viewer to that body
+  function handleBodyClick(body: CelestialBody) {
+    const ra = raToDegrees(body.right_ascension)
     const dec = decToDegrees(body.declination)
     if (ra !== null && dec !== null) {
       setViewTarget({ ra, dec })
-      setViewFov(1) // Zoom in to 1 degree FoV when selecting a body
+      setViewFov(1)
     }
   }
 
@@ -91,31 +82,8 @@ function App() {
         targetRA={viewTarget?.ra}
         targetDec={viewTarget?.dec}
         fov={viewFov}
-        selectedBody={selected?.body.name}
       />
-      <StarFinder
-        bodies={bodies}
-        onBodySelect={handleBodySelect}
-      />
-      {selected && (
-        <div style={{
-          margin: '24px auto',
-          maxWidth: '600px',
-          padding: '24px',
-          background: '#0d1b2a',
-          border: '1px solid #1a3a5c',
-          borderRadius: '12px',
-          textAlign: 'left',
-        }}>
-          <p style={{ color: '#4fc3f7', fontSize: '11px', marginBottom: '8px' }}>{selected.body.body_type}</p>
-          <p style={{ color: '#e8f4fd', fontSize: '18px', marginBottom: '12px' }}>{selected.body.name}</p>
-          <p style={{ color: '#a8c4d8', fontSize: '13px' }}>
-            {selected.altitude > 0
-              ? `Visible tonight — ${selected.altitude}° above the horizon, facing ${azimuthToDirection(selected.azimuth)}`
-              : 'Currently below the horizon'}
-          </p>
-        </div>
-      )}
+      <AstridChat />
       <h2>Collection</h2>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'center' }}>
         {bodies.map(body => {
@@ -124,6 +92,7 @@ function App() {
           return (
             <div
               key={body.id}
+              onClick={() => handleBodyClick(body)}
               style={{
                 padding: '16px',
                 border: `1px solid ${collected ? '#1a3a5c' : '#0d1f30'}`,
@@ -132,6 +101,7 @@ function App() {
                 width: '160px',
                 background: collected ? '#0d1b2a' : '#080f17',
                 transition: 'opacity 0.2s',
+                cursor: 'pointer',
               }}
             >
               {apod

@@ -17,3 +17,5 @@ VELLUM_VS_COMPETITORS.md
 CHEAT_SHEET_BACKUP.md
 data/
 logs/
+staticfiles/
+frontend/dist/

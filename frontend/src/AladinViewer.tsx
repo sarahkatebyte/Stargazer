@@ -56,8 +56,6 @@ type Props = {
   fov?: number
   // Bodies to show as markers on the sky
   bodies?: CelestialBody[]
-  // Name of the selected body (for highlighting)
-  selectedBody?: string
 }
 
 // Parse "5h 34m" format to decimal degrees (RA is in hours, 1h = 15 degrees)
@@ -77,7 +75,7 @@ function parseDecDegrees(dec: string): number | null {
   return degrees >= 0 ? degrees + minutes : degrees - minutes
 }
 
-export default function AladinViewer({ targetRA, targetDec, fov = 60, bodies = [], selectedBody }: Props) {
+export default function AladinViewer({ targetRA, targetDec, fov = 10, bodies = [] }: Props) {
   // useRef gives us a stable reference to the DOM div across re-renders.
   // The WHY: React re-renders when props change, but Aladin Lite is initialized
   // once and then controlled via its own API. The ref lets us initialize once
@@ -87,6 +85,7 @@ export default function AladinViewer({ targetRA, targetDec, fov = 60, bodies = [
   const catalogRef = useRef<any>(null)
 
   const [loading, setLoading] = useState(true)
+  const [ready, setReady] = useState(false) // Tracks when Aladin is fully initialized
   const [error, setError] = useState<string | null>(null)
 
   // Initialize Aladin Lite ONCE when the component mounts.
@@ -103,36 +102,28 @@ export default function AladinViewer({ targetRA, targetDec, fov = 60, bodies = [
         if (cancelled || !containerRef.current) return
 
         const aladin = A.aladin(containerRef.current, {
-          // Use CDS's own HiPS server - it has proper CORS headers for browser use.
-          // The WHY: 'P/DSS2/color' resolves to irsa.ipac.caltech.edu (NASA),
-          // which blocks cross-origin requests from localhost. CDS hosts the
-          // same imagery at alasky.cds.unistra.fr with CORS enabled.
-          // Same data, different server, works in the browser.
           survey: 'https://alasky.cds.unistra.fr/DSS/DSSColor',
           fov: fov,
-          target: '0 +0',               // Start at origin, will navigate shortly
-          showReticle: true,             // Crosshair at center
-          showCooGrid: false,            // Coordinate grid (clean look for demo)
-          showLayersControl: false,      // Hide layer controls (keep it simple)
-          showGotoControl: false,        // Hide the search box (we have StarFinder)
-          showFrame: false,              // Hide coordinate readout
-          showZoomControl: true,         // Keep zoom buttons
-          showFullscreenControl: true,   // Keep fullscreen button
-          showProjectionControl: false,  // Hide projection selector
+          // Moon's current RA/Dec (moves daily, but close enough for initial view)
+          // Sesame resolver only knows fixed deep-sky objects, not solar system bodies.
+          target: '56.25 +24',
+          showReticle: true,
+          showCooGrid: false,
+          showLayersControl: false,
+          showGotoControl: false,
+          showFrame: false,
+          showZoomControl: true,
+          showFullscreenControl: true,
+          showProjectionControl: false,
         })
 
         aladinRef.current = aladin
-
-        // Create a catalog layer for our celestial bodies.
-        const catalog = A.catalog({
-          name: 'Stargazer Collection',
-          shape: 'circle',
-          color: '#4fc3f7',
-          sourceSize: 14,
-        })
-        aladin.addCatalog(catalog)
-        catalogRef.current = catalog
+        // We don't use a shared catalog anymore - each body gets its own
+        // catalog with a custom Canvas shape (dot + label text). This is
+        // because labelColumn doesn't render in Aladin Lite v3.8.
+        catalogRef.current = true as any // just a flag that init is done
         setLoading(false)
+        setReady(true)
       })
       .catch((err) => {
         console.error('[Stargazer] Aladin Lite failed to load:', err)
@@ -168,24 +159,52 @@ export default function AladinViewer({ targetRA, targetDec, fov = 60, bodies = [
   // This is simpler than diffing individual markers. For ~50 bodies this
   // is instant. You'd optimize if you had thousands (same tradeoff as
   // React's virtual DOM diffing vs. replacing).
+  // Add labeled markers for each body.
+  // Each body gets its own catalog with a custom Canvas shape (dot + text).
+  // The WHY: Aladin's labelColumn doesn't render in v3.8. When a library
+  // feature is broken, you draw it yourself. Canvas shapes are the escape
+  // hatch - same technique as custom markers in Leaflet or Mapbox.
   useEffect(() => {
-    if (!catalogRef.current || !window.A) return
+    if (!ready || !aladinRef.current || !window.A) {
+      console.log(`[Stargazer] Waiting for Aladin: ready=${ready}`)
+      return
+    }
 
-    catalogRef.current.removeAll()
+    console.log(`[Stargazer] Adding ${bodies.length} labeled bodies to sky viewer`)
 
     bodies.forEach(body => {
       const ra = parseRADegrees(body.right_ascension)
       const dec = parseDecDegrees(body.declination)
       if (ra === null || dec === null) return
 
-      const isSelected = body.name === selectedBody
-      const source = window.A.source(ra, dec, {
-        name: body.name,
-        type: body.body_type,
-      })
-      catalogRef.current.addSources([source])
+      // Draw a canvas with a glowing dot and the body's name
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')!
+      ctx.font = 'bold 12px sans-serif'
+      const textWidth = ctx.measureText(body.name).width
+      canvas.width = Math.max(textWidth + 16, 40)
+      canvas.height = 32
+
+      // Glowing dot
+      ctx.shadowColor = '#4fc3f7'
+      ctx.shadowBlur = 6
+      ctx.fillStyle = '#4fc3f7'
+      ctx.beginPath()
+      ctx.arc(canvas.width / 2, 7, 4, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.shadowBlur = 0
+
+      // Label text
+      ctx.fillStyle = '#ffffff'
+      ctx.font = 'bold 12px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText(body.name, canvas.width / 2, 28)
+
+      const cat = window.A.catalog({ shape: canvas, sourceSize: 32 })
+      aladinRef.current.addCatalog(cat)
+      cat.addSources([window.A.source(ra, dec, { name: body.name })])
     })
-  }, [bodies, selectedBody])
+  }, [bodies, ready])
 
   return (
     <div style={{ margin: '24px 0' }}>
@@ -195,7 +214,7 @@ export default function AladinViewer({ targetRA, targetDec, fov = 60, bodies = [
           ref={containerRef}
           style={{
             width: '100%',
-            height: '450px',
+            height: '70vh',
             borderRadius: '16px',
             border: '1px solid #1a3a5c',
             overflow: 'hidden',
