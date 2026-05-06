@@ -4,9 +4,6 @@
 
 set -e
 
-echo "==> Installing Python dependencies..."
-python -m pip install -r requirements.txt
-
 echo "==> Building React frontend..."
 cd frontend
 rm -rf node_modules package-lock.json
