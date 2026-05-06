@@ -11,10 +11,4 @@ npm install --include=optional
 npm run build
 cd ..
 
-echo "==> Collecting static files..."
-python3 manage.py collectstatic --noinput
-
-echo "==> Running migrations..."
-python3 manage.py migrate --noinput
-
 echo "==> Build complete!"
