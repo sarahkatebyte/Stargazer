@@ -5,7 +5,6 @@
     "buildCommand": "bash build.sh"
   },
   "deploy": {
-    "startCommand": "bash -l -c 'python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn stargazer.wsgi --bind 0.0.0.0:$PORT --workers 3'",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3
   }
