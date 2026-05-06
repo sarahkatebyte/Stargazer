@@ -70,6 +70,8 @@ WSGI_APPLICATION = 'stargazer.wsgi.application'
 # a DATABASE_URL environment variable. dj-database-url parses it into
 # Django's DATABASES format. One env var replaces 5 settings.
 # Falls back to local PostgreSQL for development.
+_raw_db_url = os.environ.get('DATABASE_URL', 'NOT SET')
+print(f"[STARGAZER DEBUG] DATABASE_URL starts with: {_raw_db_url[:40] if _raw_db_url != 'NOT SET' else 'NOT SET'}")
 _db_config = dj_database_url.config(conn_max_age=600)
 if not _db_config.get('ENGINE'):
     # dj_database_url couldn't parse DATABASE_URL (or it wasn't set).
@@ -83,6 +85,7 @@ if not _db_config.get('ENGINE'):
         'HOST':     os.environ.get('PGHOST',     'localhost'),
         'PORT':     os.environ.get('PGPORT',     '5432'),
     }
+print(f"[STARGAZER DEBUG] DB HOST resolved to: {_db_config.get('HOST', 'EMPTY CONFIG')}")
 DATABASES = {'default': _db_config}
 
 AUTH_PASSWORD_VALIDATORS = [
