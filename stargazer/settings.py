@@ -70,11 +70,20 @@ WSGI_APPLICATION = 'stargazer.wsgi.application'
 # a DATABASE_URL environment variable. dj-database-url parses it into
 # Django's DATABASES format. One env var replaces 5 settings.
 # Falls back to local PostgreSQL for development.
-DATABASES = {
-    'default': dj_database_url.config(
-        default='postgresql://stargazer:stargazer@localhost:5432/stargazer'
-    )
-}
+_db_config = dj_database_url.config(conn_max_age=600)
+if not _db_config.get('ENGINE'):
+    # dj_database_url couldn't parse DATABASE_URL (or it wasn't set).
+    # Fall back to individual PG* vars (Railway also provides these),
+    # then to local dev defaults.
+    _db_config = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME':     os.environ.get('PGDATABASE', 'stargazer'),
+        'USER':     os.environ.get('PGUSER',     'stargazer'),
+        'PASSWORD': os.environ.get('PGPASSWORD', 'stargazer'),
+        'HOST':     os.environ.get('PGHOST',     'localhost'),
+        'PORT':     os.environ.get('PGPORT',     '5432'),
+    }
+DATABASES = {'default': _db_config}
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
