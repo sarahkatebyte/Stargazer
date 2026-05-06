@@ -2,7 +2,14 @@
 nixPkgs = ["python312Full", "nodejs_22"]
 
 [phases.install]
-cmds = ["python -m ensurepip --upgrade", "python -m pip install -r requirements.txt"]
+cmds = [
+  "python -m venv /opt/venv",
+  "/opt/venv/bin/pip install -r requirements.txt",
+  "cd frontend && npm install --include=optional && cd .."
+]
+
+[phases.build]
+cmds = ["cd frontend && npm run build"]
 
 [start]
-cmd = "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn stargazer.wsgi --bind 0.0.0.0:$PORT --workers 3"
+cmd = "/opt/venv/bin/python manage.py migrate --noinput && /opt/venv/bin/python manage.py collectstatic --noinput && /opt/venv/bin/gunicorn stargazer.wsgi --bind 0.0.0.0:$PORT --workers 3"
