@@ -19,3 +19,4 @@ data/
 logs/
 staticfiles/
 frontend/dist/
+DEPLOY_LOG.md
