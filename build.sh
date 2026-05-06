@@ -7,7 +7,7 @@ set -e
 echo "==> Building React frontend..."
 cd frontend
 rm -rf node_modules package-lock.json
-npm install
+npm install --include=optional
 npm run build
 cd ..
 
