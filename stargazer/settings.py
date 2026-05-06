@@ -105,7 +105,7 @@ USE_TZ = True
 STATIC_URL = '/assets/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
-    BASE_DIR / 'frontend' / 'dist' / 'assets',
+    BASE_DIR / 'frontend' / 'dist',
 ]
 
 # WhiteNoise compression + caching (forever-cache for hashed filenames)
