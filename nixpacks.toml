@@ -12,4 +12,4 @@ cmds = [
 cmds = ["cd frontend && npm run build"]
 
 [start]
-cmd = "/opt/venv/bin/python manage.py migrate --noinput && /opt/venv/bin/python manage.py collectstatic --noinput && /opt/venv/bin/gunicorn stargazer.wsgi --bind 0.0.0.0:$PORT --workers 3"
+cmd = "echo 'ANTHROPIC_KEY starts with:' ${ANTHROPIC_API_KEY:0:10} && /opt/venv/bin/python manage.py migrate --noinput && /opt/venv/bin/python manage.py collectstatic --noinput && /opt/venv/bin/gunicorn stargazer.wsgi --bind 0.0.0.0:$PORT --workers 3"
