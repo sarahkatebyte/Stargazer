@@ -15,11 +15,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-SCRIPTS_DIR = Path(__file__).resolve().parent.parent / 'skill' / 'scripts'
+SCRIPTS_DIR = settings.BASE_DIR / 'skill' / 'scripts'
 
 
 def _run_script(tool_name: str, tool_input: dict) -> str:
