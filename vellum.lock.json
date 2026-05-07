@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "workflows": [
+    {
+      "module": "apod.astrid",
+      "workflow_sandbox_id": "8fa1a124-31e8-4262-8dd5-56338ef1a683",
+      "ignore": null,
+      "deployments": [
+        {
+          "id": "f0269cdb-6b46-4452-9c6f-bb776537b3ba",
+          "label": "Astrid v1",
+          "name": "astrid-agent",
+          "description": "Stargazer conversational agent - ToolCallingNode with 5 astronomy tools",
+          "release_tags": null,
+          "release_description": null
+        }
+      ],
+      "container_image_name": null,
+      "container_image_tag": null,
+      "workspace": "default",
+      "target_directory": null
+    }
+  ],
+  "workspaces": []
+}
