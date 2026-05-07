@@ -99,7 +99,8 @@ def lookup(name, obs_date=None):
         "CSV_FORMAT": "'YES'",
     }
 
-    url = f"{HORIZONS_API_URL}?{urllib.parse.urlencode(params, safe=\"'\")}"
+    _safe = "'"
+    url = f"{HORIZONS_API_URL}?{urllib.parse.urlencode(params, safe=_safe)}"
 
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "Stargazer/1.0"})
