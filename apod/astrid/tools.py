@@ -15,8 +15,8 @@ and docstring - so the signature IS the contract. Keep them precise.
 
 import json
 import os
-
-import requests
+import urllib.error
+import urllib.request
 
 _BASE_URL = os.environ.get(
     'STARGAZER_BASE_URL',
@@ -25,15 +25,24 @@ _BASE_URL = os.environ.get(
 
 
 def _call_tool(tool_name: str, tool_input: dict) -> str:
-    """POST to the tool endpoint on the Django app and return the output string."""
+    """POST to the tool endpoint on the Django app and return the output string.
+
+    Uses stdlib urllib so this works in Vellum's hosted execution environment
+    without any third-party dependencies.
+    """
     url = f'{_BASE_URL}/api/tools/{tool_name}/'
+    payload = json.dumps(tool_input).encode('utf-8')
+    req = urllib.request.Request(
+        url,
+        data=payload,
+        headers={'Content-Type': 'application/json'},
+        method='POST',
+    )
     try:
-        response = requests.post(url, json=tool_input, timeout=20)
-        response.raise_for_status()
-        return response.json().get('output', json.dumps({'error': 'No output returned'}))
-    except requests.Timeout:
-        return json.dumps({'error': f'Tool {tool_name} timed out'})
-    except requests.RequestException as e:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            body = json.loads(resp.read().decode('utf-8'))
+            return body.get('output', json.dumps({'error': 'No output returned'}))
+    except urllib.error.URLError as e:
         return json.dumps({'error': f'Tool request failed: {str(e)}'})
 
 
