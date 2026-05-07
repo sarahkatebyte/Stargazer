@@ -39,7 +39,7 @@ SYSTEM_PROMPT = _SKILL_MD.read_text()
 
 
 class AstridAgent(ToolCallingNode):
-    ml_model = "claude-3-5-sonnet-20241022"
+    ml_model = "bfba1721-9299-4627-bbf6-b0192be66158"  # Claude 4.6 in Vellum workspace
 
     prompt_inputs = {
         "chat_history": Inputs.chat_history,
