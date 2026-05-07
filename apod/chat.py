@@ -16,7 +16,7 @@ import os
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from vellum import ChatMessage
+from vellum import ChatMessage, StringChatMessageContent
 
 from .astrid import AstridWorkflow
 from .astrid.inputs import Inputs
@@ -36,7 +36,7 @@ def _to_chat_messages(messages: list) -> list[ChatMessage]:
     return [
         ChatMessage(
             role=role_map.get(msg.get("role", "user"), "USER"),
-            content=msg.get("content", ""),
+            content=StringChatMessageContent(value=msg.get("content", "")),
         )
         for msg in messages
     ]
