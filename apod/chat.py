@@ -1,13 +1,11 @@
 """
 Astrid Chat Engine - Vellum-powered
 
-The agentic loop now runs as a Vellum Workflow:
-  - LLM calls go through Vellum's inference API
-  - Tool schemas are auto-generated from function signatures
-  - Every conversation is traced in the Vellum dashboard
-  - Model swaps happen in Vellum, not in this code
+Calls the deployed "astrid-agent" workflow on Vellum's platform via execute_workflow().
+Every execution traces in app.vellum.ai → workflow sandbox → Executions tab.
 
-Django's job here is simple: parse the request, run the workflow, return the response.
+Django's job: parse the request, call Vellum, return the response.
+The intelligence lives in Vellum.
 """
 
 import json
@@ -16,17 +14,27 @@ import os
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from vellum import ChatMessage, StringChatMessageContent
+from vellum import Vellum
+from vellum.client.types import (
+    ChatMessageRequest,
+    WorkflowRequestChatHistoryInputRequest,
+    WorkflowOutputString,
+)
 
-from .astrid import AstridWorkflow
-from .astrid.inputs import Inputs
+_client = None
 
 
-def _to_chat_messages(messages: list) -> list[ChatMessage]:
-    """Convert frontend message format to Vellum ChatMessage objects.
+def _get_client():
+    global _client
+    if _client is None:
+        _client = Vellum(api_key=os.environ["VELLUM_API_KEY"])
+    return _client
+
+
+def _to_chat_message_requests(messages: list) -> list[ChatMessageRequest]:
+    """Convert frontend message format to Vellum ChatMessageRequest objects.
 
     Frontend sends: [{"role": "user", "content": "..."}, ...]
-    Vellum expects: ChatMessage(role="USER", content="...")
     """
     role_map = {
         "user": "USER",
@@ -34,9 +42,9 @@ def _to_chat_messages(messages: list) -> list[ChatMessage]:
         "system": "SYSTEM",
     }
     return [
-        ChatMessage(
+        ChatMessageRequest(
             role=role_map.get(msg.get("role", "user"), "USER"),
-            content=StringChatMessageContent(value=msg.get("content", "")),
+            text=msg.get("content", ""),
         )
         for msg in messages
     ]
@@ -57,21 +65,27 @@ def chat_view(request):
         if not messages:
             return JsonResponse({"error": "No messages provided"}, status=400)
 
-        chat_history = _to_chat_messages(messages)
-        workflow = AstridWorkflow()
-        event = workflow.run(inputs=Inputs(chat_history=chat_history))
+        chat_history = _to_chat_message_requests(messages)
 
-        if event.name == "workflow.execution.fulfilled":
-            return JsonResponse({
-                "response": event.outputs.response,
-            })
-        else:
-            error_detail = getattr(event, 'error', None)
-            error_msg = str(error_detail) if error_detail else f"event={event.name}"
-            return JsonResponse(
-                {"error": f"Workflow failed: {error_msg}"},
-                status=500,
-            )
+        result = _get_client().execute_workflow(
+            workflow_deployment_name="astrid-agent",
+            inputs=[
+                WorkflowRequestChatHistoryInputRequest(
+                    name="chat_history",
+                    value=chat_history,
+                )
+            ],
+        )
+
+        # Find the "response" output in the result
+        for output in result.data.outputs:
+            if output.name == "response" and isinstance(output, WorkflowOutputString):
+                return JsonResponse({"response": output.value})
+
+        return JsonResponse(
+            {"error": "No response output found in workflow result"},
+            status=500,
+        )
 
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)

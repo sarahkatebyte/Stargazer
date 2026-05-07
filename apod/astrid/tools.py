@@ -1,54 +1,50 @@
 """
 Astrid tool functions for Vellum's ToolCallingNode.
 
-Each function is a thin wrapper around the existing subprocess-based tool runner.
+Each function is a thin HTTP client that calls the tool execution endpoints
+on the Stargazer Django app. This lets Vellum's hosted workflow runner call
+tools that actually execute on the Railway server (where the scripts live).
+
+STARGAZER_BASE_URL env var controls where requests go:
+  - Production: https://stargazer-production-d04d.up.railway.app
+  - Local dev:  http://localhost:8000
+
 Vellum auto-generates the JSON schema for each tool from the function signature
 and docstring - so the signature IS the contract. Keep them precise.
 """
 
 import json
-import subprocess
-import sys
-from pathlib import Path
+import os
 
-SCRIPTS_DIR = Path(__file__).resolve().parent.parent.parent / 'skill' / 'scripts'
+import requests
+
+_BASE_URL = os.environ.get(
+    'STARGAZER_BASE_URL',
+    'https://stargazer-production-d04d.up.railway.app'
+).rstrip('/')
 
 
-def _run_script(tool_name: str, tool_input: dict) -> str:
-    """Execute a tool script as a subprocess and return its output."""
-    script_path = SCRIPTS_DIR / f'{tool_name}.py'
-
-    if not script_path.exists():
-        return json.dumps({'error': f'Unknown tool: {tool_name}'})
-
+def _call_tool(tool_name: str, tool_input: dict) -> str:
+    """POST to the tool endpoint on the Django app and return the output string."""
+    url = f'{_BASE_URL}/api/tools/{tool_name}/'
     try:
-        result = subprocess.run(
-            [sys.executable, str(script_path), json.dumps(tool_input)],
-            capture_output=True,
-            text=True,
-            timeout=15,
-            cwd=str(SCRIPTS_DIR),
-        )
-        if result.returncode != 0:
-            return json.dumps({
-                'error': f'Tool {tool_name} failed',
-                'details': result.stderr[:500] if result.stderr else 'Unknown error'
-            })
-        return result.stdout.strip()
-    except subprocess.TimeoutExpired:
-        return json.dumps({'error': f'Tool {tool_name} timed out after 15 seconds'})
-    except Exception as e:
-        return json.dumps({'error': f'Tool execution error: {str(e)}'})
+        response = requests.post(url, json=tool_input, timeout=20)
+        response.raise_for_status()
+        return response.json().get('output', json.dumps({'error': 'No output returned'}))
+    except requests.Timeout:
+        return json.dumps({'error': f'Tool {tool_name} timed out'})
+    except requests.RequestException as e:
+        return json.dumps({'error': f'Tool request failed: {str(e)}'})
 
 
 def get_celestial_bodies() -> str:
     """Get all celestial bodies in the Stargazer collection, including their coordinates and type."""
-    return _run_script('get_celestial_bodies', {})
+    return _call_tool('get_celestial_bodies', {})
 
 
 def get_todays_apod() -> str:
     """Get today's NASA Astronomy Picture of the Day, including the title, explanation, and image URL."""
-    return _run_script('get_todays_apod', {})
+    return _call_tool('get_todays_apod', {})
 
 
 def get_visible_tonight(
@@ -65,14 +61,14 @@ def get_visible_tonight(
         latitude: Observer's latitude in decimal degrees (fallback if no address)
         longitude: Observer's longitude in decimal degrees (fallback if no address)
     """
-    input_data = {}
+    tool_input = {}
     if address:
-        input_data['address'] = address
+        tool_input['address'] = address
     if latitude is not None:
-        input_data['latitude'] = latitude
+        tool_input['latitude'] = latitude
     if longitude is not None:
-        input_data['longitude'] = longitude
-    return _run_script('get_visible_tonight', input_data)
+        tool_input['longitude'] = longitude
+    return _call_tool('get_visible_tonight', tool_input)
 
 
 def lookup_simbad(name: str) -> str:
@@ -85,7 +81,7 @@ def lookup_simbad(name: str) -> str:
     Args:
         name: Name of the celestial body (e.g. 'Crab Nebula', 'Betelgeuse', 'M31')
     """
-    return _run_script('lookup_simbad', {'name': name})
+    return _call_tool('lookup_simbad', {'name': name})
 
 
 def lookup_jpl_horizons(name: str, date: str = None) -> str:
@@ -101,4 +97,4 @@ def lookup_jpl_horizons(name: str, date: str = None) -> str:
     input_data = {'name': name}
     if date:
         input_data['date'] = date
-    return _run_script('lookup_jpl_horizons', input_data)
+    return _call_tool('lookup_jpl_horizons', input_data)
