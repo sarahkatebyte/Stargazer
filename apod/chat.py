@@ -104,7 +104,9 @@ def run_agent_loop(messages: list, max_turns: int = 6) -> dict:
     call tools forever (costing money and time). Your ingestion agent uses
     8 turns. We use 6 here because chat should feel snappy.
     """
-    client = anthropic.Anthropic()  # Reads ANTHROPIC_API_KEY from env
+    # Strip any leading whitespace/= that Railway may inject via copy-paste artifacts
+    raw_key = os.environ.get('ANTHROPIC_API_KEY', '').strip().lstrip('=').strip()
+    client = anthropic.Anthropic(api_key=raw_key or None)
 
     for turn in range(max_turns):
         response = client.messages.create(
