@@ -66,8 +66,10 @@ def chat_view(request):
                 "response": event.outputs.response,
             })
         else:
+            error_detail = getattr(event, 'error', None)
+            error_msg = str(error_detail) if error_detail else f"event={event.name}"
             return JsonResponse(
-                {"error": "Workflow execution failed"},
+                {"error": f"Workflow failed: {error_msg}"},
                 status=500,
             )
 
