@@ -147,8 +147,27 @@ def get_bortle_class(lat, lon):
     }
 
 
+BODY_TYPE_ALIASES = {
+    'emission nebula': 'Nebula',
+    'planetary nebula': 'Nebula',
+    'cometary globule': 'Nebula',
+    'supernova remnant': 'Nebula',
+    'open star cluster': 'Star Cluster',
+    'globular cluster': 'Star Cluster',
+    'galaxy': 'Galaxy',
+    'planet': 'Planet',
+    'star': 'Star',
+    'nebula': 'Nebula',
+    'star cluster': 'Star Cluster',
+    'moon': 'Planet',
+    'natural satellite': 'Planet',
+    'comet': 'Planet',
+}
+
+
 def assess_visibility(body_type, bortle_class):
-    thresholds = VISIBILITY_THRESHOLDS.get(body_type, VISIBILITY_THRESHOLDS['default'])
+    normalized = BODY_TYPE_ALIASES.get(body_type.lower(), body_type)
+    thresholds = VISIBILITY_THRESHOLDS.get(normalized, VISIBILITY_THRESHOLDS['default'])
     if bortle_class <= thresholds['naked_eye']:
         return 'naked_eye'
     elif bortle_class <= thresholds['binoculars']:
