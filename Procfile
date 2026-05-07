@@ -1,1 +1,1 @@
-web: python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn stargazer.wsgi --bind 0.0.0.0:$PORT --workers 3
+web: python manage.py migrate --noinput && python manage.py collectstatic --noinput && python manage.py seed_bodies && gunicorn stargazer.wsgi --bind 0.0.0.0:$PORT --workers 3
