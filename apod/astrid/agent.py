@@ -33,9 +33,14 @@ from .tools import (
     lookup_simbad,
 )
 
-# Load system prompt once at import time
+# Load system prompt once at import time.
+# Falls back to empty string when running on Vellum's hosted platform -
+# the prompt is already serialized into the workflow definition at push time.
 _SKILL_MD = Path(__file__).resolve().parent.parent.parent / 'skill' / 'SKILL.md'
-SYSTEM_PROMPT = _SKILL_MD.read_text()
+try:
+    SYSTEM_PROMPT = _SKILL_MD.read_text()
+except FileNotFoundError:
+    SYSTEM_PROMPT = ""
 
 
 class AstridAgent(ToolCallingNode):
