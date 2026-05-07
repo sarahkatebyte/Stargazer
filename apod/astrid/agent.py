@@ -39,7 +39,7 @@ SYSTEM_PROMPT = _SKILL_MD.read_text()
 
 
 class AstridAgent(ToolCallingNode):
-    ml_model = "claude-sonnet-4-20250514"
+    ml_model = "claude-3-5-sonnet-20241022"
 
     prompt_inputs = {
         "chat_history": Inputs.chat_history,
