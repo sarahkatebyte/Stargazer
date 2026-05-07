@@ -116,7 +116,8 @@ pip install django djangorestframework psycopg2-binary python-dotenv vellum-ai r
 
 # Create .env
 echo "NASA_API_KEY=your_key_here" > .env
-echo "VELLUM_API_KEY=your_key_here" >> .env
+echo "ANTHROPIC_API_KEY=your_key_here" >> .env   # ingestion agent (astronomy_agent.py)
+echo "VELLUM_API_KEY=your_key_here" >> .env      # Astrid conversational agent (chat.py)
 echo "STARGAZER_BASE_URL=http://localhost:8000" >> .env
 
 # Database (PostgreSQL)
