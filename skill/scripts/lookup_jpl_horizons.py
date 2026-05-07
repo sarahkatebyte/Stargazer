@@ -4,6 +4,7 @@ Returns the body name, current RA/Dec, and body type.
 Covers planets, moons, comets, and asteroids - objects inside the solar system.
 """
 
+import os
 import re
 import sys
 import json
@@ -151,7 +152,8 @@ result = lookup(name, obs_date)
 
 # Also check local database
 try:
-    response = urllib.request.urlopen("http://localhost:8000/api/celestial-bodies/")
+    base_url = os.environ.get('STARGAZER_BASE_URL', 'http://localhost:8000').rstrip('/')
+    response = urllib.request.urlopen(f"{base_url}/api/celestial-bodies/")
     bodies = json.loads(response.read())
     local_match = next((b for b in bodies if b["name"].lower() == name.lower()), None)
 except Exception:

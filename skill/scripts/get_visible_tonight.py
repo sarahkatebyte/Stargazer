@@ -159,6 +159,8 @@ def assess_visibility(body_type, bortle_class):
 
 # --- Main ---
 
+BASE_URL = os.environ.get('STARGAZER_BASE_URL', 'http://localhost:8000').rstrip('/')
+
 args = json.loads(sys.argv[1])
 
 if 'address' in args and args['address']:
@@ -178,7 +180,7 @@ else:
 bortle = get_bortle_class(lat, lon)
 
 # Get celestial bodies from local API
-response = urllib.request.urlopen('http://localhost:8000/api/celestial-bodies/')
+response = urllib.request.urlopen(f'{BASE_URL}/api/celestial-bodies/')
 bodies = json.loads(response.read())
 
 results = []

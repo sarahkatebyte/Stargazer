@@ -1,6 +1,8 @@
-import urllib.request
 import json
+import os
+import urllib.request
 
-response = urllib.request.urlopen('http://localhost:8000/api/celestial-bodies/')
+BASE_URL = os.environ.get('STARGAZER_BASE_URL', 'http://localhost:8000').rstrip('/')
+response = urllib.request.urlopen(f'{BASE_URL}/api/celestial-bodies/')
 data = json.loads(response.read())
 print(json.dumps(data))

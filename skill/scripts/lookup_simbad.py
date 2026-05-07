@@ -3,6 +3,7 @@ Look up a celestial body in the SIMBAD astronomical database.
 Returns the canonical name, coordinates, object type, and cross-references.
 """
 
+import os
 import sys
 import json
 import urllib.request
@@ -120,7 +121,8 @@ name = args["name"]
 
 # Check local database first
 try:
-    response = urllib.request.urlopen("http://localhost:8000/api/celestial-bodies/")
+    base_url = os.environ.get('STARGAZER_BASE_URL', 'http://localhost:8000').rstrip('/')
+    response = urllib.request.urlopen(f"{base_url}/api/celestial-bodies/")
     bodies = json.loads(response.read())
     local_match = next((b for b in bodies if b["name"].lower() == name.lower()), None)
 except Exception:
