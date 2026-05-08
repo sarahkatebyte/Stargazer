@@ -19,11 +19,9 @@ SIMBAD_TAP_URL = "https://simbad.u-strasbg.fr/simbad/sim-tap/sync"
 def _sanitize_adql_name(name: str) -> str:
     """
     Sanitize a celestial body name for safe interpolation into ADQL queries.
-    Escapes single quotes (ADQL standard) and strips non-astronomical characters.
+    Strips any character that has no place in an astronomical object name —
+    this includes single quotes, which eliminates the ADQL injection surface.
     """
-    # Escape single quotes per ADQL spec ('' = literal quote)
-    name = name.replace("'", "''")
-    # Strip characters with no place in an astronomical object name
     name = re.sub(r'[^\w\s\-+.*/()\[\]#,]', '', name)
     return name.strip()
 

@@ -27,8 +27,8 @@ def deg_to_dms(deg: float) -> str:
 def sanitize_adql_name(name: str) -> str:
     """
     Sanitize a celestial body name for safe interpolation into ADQL queries.
-    Escapes single quotes (ADQL standard) and strips non-astronomical characters.
+    Strips any character that has no place in an astronomical object name —
+    this includes single quotes, which eliminates the ADQL injection surface.
     """
-    name = name.replace("'", "''")
     name = re.sub(r'[^\w\s\-+.*/()\[\]#,]', '', name)
     return name.strip()
