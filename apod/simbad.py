@@ -16,15 +16,28 @@ logger = logging.getLogger(__name__)
 SIMBAD_TAP_URL = "https://simbad.u-strasbg.fr/simbad/sim-tap/sync"
 
 
+def _sanitize_adql_name(name: str) -> str:
+    """
+    Sanitize a celestial body name for safe interpolation into ADQL queries.
+    Escapes single quotes (ADQL standard) and strips non-astronomical characters.
+    """
+    # Escape single quotes per ADQL spec ('' = literal quote)
+    name = name.replace("'", "''")
+    # Strip characters with no place in an astronomical object name
+    name = re.sub(r'[^\w\s\-+.*/()\[\]#,]', '', name)
+    return name.strip()
+
+
 def lookup_body(name):
     """
     Query SIMBAD for a celestial body by name.
     Returns dict with main_id, ra_deg, dec_deg, object_type, or None if not found.
     """
+    safe_name = _sanitize_adql_name(name)
     query = (
         f"SELECT main_id, ra, dec, otype_txt "
         f"FROM basic JOIN ident ON basic.oid = ident.oidref "
-        f"WHERE ident.id = '{name}'"
+        f"WHERE ident.id = '{safe_name}'"
     )
 
     params = urllib.parse.urlencode({
@@ -66,10 +79,11 @@ def _retry_with_aliases(name):
     ]
 
     for alias in aliases[1:]:  # Skip first, already tried
+        safe_alias = _sanitize_adql_name(alias)
         query = (
             f"SELECT main_id, ra, dec, otype_txt "
             f"FROM basic JOIN ident ON basic.oid = ident.oidref "
-            f"WHERE ident.id = '{alias}'"
+            f"WHERE ident.id = '{safe_alias}'"
         )
         params = urllib.parse.urlencode({
             "request": "doQuery",

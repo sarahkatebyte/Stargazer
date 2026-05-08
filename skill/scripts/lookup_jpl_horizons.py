@@ -10,6 +10,10 @@ import sys
 import json
 import urllib.request
 import urllib.parse
+
+# Add scripts dir to path so we can share utilities across tool scripts
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _astronomy_utils import deg_to_hms, deg_to_dms  # noqa: E402
 from datetime import date, datetime, timedelta
 
 HORIZONS_API_URL = "https://ssd.jpl.nasa.gov/api/horizons.api"
@@ -47,21 +51,7 @@ BODY_TYPES = {
 }
 
 
-def deg_to_hms(deg):
-    hours = deg / 15.0
-    h = int(hours)
-    m = int((hours - h) * 60)
-    s = ((hours - h) * 60 - m) * 60
-    return f"{h:02d}h {m:02d}m {s:04.1f}s"
-
-
-def deg_to_dms(deg):
-    sign = "+" if deg >= 0 else "-"
-    deg = abs(deg)
-    d = int(deg)
-    m = int((deg - d) * 60)
-    s = ((deg - d) * 60 - m) * 60
-    return f"{sign}{d:02d}\u00b0 {m:02d}' {s:04.1f}\""
+# deg_to_hms and deg_to_dms live in _astronomy_utils.py — imported above
 
 
 def lookup(name, obs_date=None):

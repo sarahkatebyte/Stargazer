@@ -9,15 +9,20 @@ import json
 import urllib.request
 import urllib.parse
 
+# Add scripts dir to path so we can share utilities across tool scripts
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _astronomy_utils import deg_to_hms, deg_to_dms, sanitize_adql_name  # noqa: E402
+
 SIMBAD_TAP_URL = "https://simbad.u-strasbg.fr/simbad/sim-tap/sync"
 
 
 def lookup(name):
     """Query SIMBAD by identifier name."""
+    safe_name = sanitize_adql_name(name)
     query = (
         f"SELECT main_id, ra, dec, otype_txt "
         f"FROM basic JOIN ident ON basic.oid = ident.oidref "
-        f"WHERE ident.id = '{name}'"
+        f"WHERE ident.id = '{safe_name}'"
     )
     params = urllib.parse.urlencode({
         "request": "doQuery",
@@ -57,10 +62,11 @@ def lookup(name):
 
 def lookup_with_prefix(name):
     """Retry with 'NAME' prefix for common names like 'Crab Nebula'."""
+    safe_name = sanitize_adql_name(name)
     query = (
         f"SELECT main_id, ra, dec, otype_txt "
         f"FROM basic JOIN ident ON basic.oid = ident.oidref "
-        f"WHERE ident.id = 'NAME {name}'"
+        f"WHERE ident.id = 'NAME {safe_name}'"
     )
     params = urllib.parse.urlencode({
         "request": "doQuery",
@@ -97,23 +103,7 @@ def lookup_with_prefix(name):
         return {"found": False, "name": name, "error": str(e)}
 
 
-def deg_to_hms(deg):
-    """Convert degrees to hours/minutes/seconds string."""
-    hours = deg / 15.0
-    h = int(hours)
-    m = int((hours - h) * 60)
-    s = ((hours - h) * 60 - m) * 60
-    return f"{h:02d}h {m:02d}m {s:04.1f}s"
-
-
-def deg_to_dms(deg):
-    """Convert degrees to degrees/arcminutes/arcseconds string."""
-    sign = "+" if deg >= 0 else "-"
-    deg = abs(deg)
-    d = int(deg)
-    m = int((deg - d) * 60)
-    s = ((deg - d) * 60 - m) * 60
-    return f"{sign}{d:02d}\u00b0 {m:02d}' {s:04.1f}\""
+# deg_to_hms and deg_to_dms live in _astronomy_utils.py — imported above
 
 
 args = json.loads(sys.argv[1])

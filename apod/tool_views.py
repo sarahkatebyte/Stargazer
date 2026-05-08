@@ -22,13 +22,25 @@ from django.views.decorators.http import require_POST
 
 SCRIPTS_DIR = settings.BASE_DIR / 'skill' / 'scripts'
 
+# Allowlist of permitted tool names — prevents path traversal via tool_name
+ALLOWED_TOOLS = {
+    'get_celestial_bodies',
+    'get_todays_apod',
+    'get_visible_tonight',
+    'lookup_simbad',
+    'lookup_jpl_horizons',
+}
+
 
 def _run_script(tool_name: str, tool_input: dict) -> str:
     """Execute a tool script as a subprocess and return its output."""
+    if tool_name not in ALLOWED_TOOLS:
+        return json.dumps({'error': f'Unknown tool: {tool_name}'})
+
     script_path = SCRIPTS_DIR / f'{tool_name}.py'
 
     if not script_path.exists():
-        return json.dumps({'error': f'Unknown tool: {tool_name}'})
+        return json.dumps({'error': f'Tool script not found: {tool_name}'})
 
     try:
         result = subprocess.run(
