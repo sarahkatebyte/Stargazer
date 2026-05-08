@@ -35,11 +35,24 @@ function App() {
   const [collections, setCollections] = useState<Collection[]>([])
   const [viewTarget, setViewTarget] = useState<{ ra: number, dec: number } | null>(null)
   const [viewFov, setViewFov] = useState(10)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/apods/').then(res => res.json()).then(setApods)
-    fetch('/api/celestial-bodies/').then(res => res.json()).then(setBodies)
-    fetch('/api/collections/').then(res => res.json()).then(setCollections)
+    // Fire all three fetches simultaneously — Promise.all waits for all of them
+    // One .catch() covers all three — if any fail, the user sees an error message
+    Promise.all([
+      fetch('/api/apods/').then(res => res.json()),
+      fetch('/api/celestial-bodies/').then(res => res.json()),
+      fetch('/api/collections/').then(res => res.json()),
+    ])
+      .then(([apodsData, bodiesData, collectionsData]) => {
+        setApods(apodsData)
+        setBodies(bodiesData)
+        setCollections(collectionsData)
+      })
+      .catch(() => setError("Couldn't load the collection, try refreshing."))
+      .finally(() => setLoading(false))
   }, [])
 
   const collectedIds = new Set(collections.map(c => c.celestial_body))
@@ -73,6 +86,18 @@ function App() {
       setViewFov(1)
     }
   }
+
+  if (loading) return (
+    <div style={{ color: '#8892a4', fontStyle: 'italic', padding: '40px', textAlign: 'center' }}>
+      Pondering...
+    </div>
+  )
+
+  if (error) return (
+    <div style={{ color: '#e57373', padding: '40px', textAlign: 'center' }}>
+      {error}
+    </div>
+  )
 
   return (
     <div>
