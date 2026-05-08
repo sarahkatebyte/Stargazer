@@ -112,7 +112,7 @@ Workflow deployment: https://app.vellum.ai/public/workflow-deployments/f0269cdb-
 cd stargazer
 python -m venv venv
 source venv/bin/activate
-pip install django djangorestframework psycopg2-binary python-dotenv vellum-ai requests
+pip install django djangorestframework psycopg2-binary python-dotenv vellum-ai anthropic requests
 
 # Create .env
 echo "NASA_API_KEY=your_key_here" > .env
@@ -145,6 +145,7 @@ npm run dev
 | `python manage.py bulk_import_apods --start YYYY-MM-DD` | Backfill APODs from NASA (images only, no agent) |
 | `python manage.py seed_bodies` | Seed 12 well-known celestial bodies |
 | `python manage.py refresh_planet_coords` | Update RA/Dec for solar system bodies via JPL Horizons |
+| `python manage.py backfill_collections` | Link seeded bodies to APODs via title matching (dry run by default, add `--save` to apply) |
 
 ## Tech Stack
 
