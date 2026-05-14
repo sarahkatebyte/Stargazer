@@ -5,7 +5,7 @@ nixPkgs = ["python312Full", "nodejs_22"]
 cmds = [
   "python -m venv /opt/venv",
   "/opt/venv/bin/pip install -r requirements.txt",
-  "cd frontend && npm install --include=optional && cd .."
+  "cd frontend && npm ci && cd .."
 ]
 
 [phases.build]
