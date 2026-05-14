@@ -5,11 +5,11 @@ nixPkgs = ["python312Full", "nodejs_22"]
 cmds = [
   "python -m venv /opt/venv",
   "/opt/venv/bin/pip install -r requirements.txt",
-  "cd frontend && npm install --legacy-peer-deps --omit=optional && cd .."
+  "cd frontend && npm install && cd .."
 ]
 
 [phases.build]
-cmds = ["cd frontend && ./node_modules/.bin/vite build"]
+cmds = ["cd frontend && npm run build"]
 
 [start]
 cmd = "/opt/venv/bin/python manage.py migrate --noinput && /opt/venv/bin/python manage.py collectstatic --noinput && /opt/venv/bin/gunicorn stargazer.wsgi --bind 0.0.0.0:$PORT --workers 3"
