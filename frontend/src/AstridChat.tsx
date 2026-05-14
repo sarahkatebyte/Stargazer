@@ -17,12 +17,14 @@ export default function AstridChat({ }: Props) {
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Auto-scroll to latest message
+  // Auto-scroll to latest message — scroll the container, not the page
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
+    }
   }, [messages])
 
   async function handleSend() {
@@ -107,7 +109,7 @@ export default function AstridChat({ }: Props) {
 
       {!collapsed && <>
       {/* Message history */}
-      <div style={{
+      <div ref={messagesContainerRef} style={{
         background: 'transparent',
         padding: '16px',
         height: '280px',
@@ -170,7 +172,7 @@ export default function AstridChat({ }: Props) {
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
+
       </div>
 
       {/* Input */}
