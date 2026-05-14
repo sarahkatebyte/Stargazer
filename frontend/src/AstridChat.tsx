@@ -8,6 +8,7 @@ type Message = {
 type Props = {}
 
 export default function AstridChat({ }: Props) {
+  const [collapsed, setCollapsed] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -72,30 +73,46 @@ export default function AstridChat({ }: Props) {
 
   return (
     <div style={{
-      margin: '32px 0',
-      maxWidth: '720px',
-      marginLeft: 'auto',
-      marginRight: 'auto',
+      position: 'fixed',
+      bottom: '24px',
+      right: '24px',
+      width: '360px',
+      zIndex: 1000,
+      background: 'rgba(5, 10, 20, 0.92)',
+      backdropFilter: 'blur(12px)',
+      border: '1px solid rgba(79, 195, 247, 0.2)',
+      borderRadius: '16px',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+      overflow: 'hidden',
     }}>
-      <h2 style={{
-        color: '#e8f4fd',
-        fontSize: '14px',
-        letterSpacing: '2px',
-        textTransform: 'uppercase',
-        marginBottom: '16px',
-      }}>
-        Ask Astrid
-      </h2>
+      {/* Header */}
+      <div
+        onClick={() => setCollapsed(c => !c)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 16px',
+          cursor: 'pointer',
+          borderBottom: collapsed ? 'none' : '1px solid rgba(79, 195, 247, 0.12)',
+        }}
+      >
+        <span style={{ color: '#4fc3f7', fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase' }}>
+          ✦ Astrid
+        </span>
+        <span style={{ color: '#4fc3f7', fontSize: '16px', lineHeight: 1 }}>
+          {collapsed ? '▲' : '▼'}
+        </span>
+      </div>
 
+      {!collapsed && <>
       {/* Message history */}
       <div style={{
-        background: '#080f17',
-        border: '1px solid #1a3a5c',
-        borderRadius: '16px',
-        padding: '20px',
-        height: '400px',
+        background: 'transparent',
+        padding: '16px',
+        height: '280px',
         overflowY: 'auto',
-        marginBottom: '12px',
+        marginBottom: '0',
       }}>
         {messages.map((msg, i) => (
           <div
@@ -157,23 +174,23 @@ export default function AstridChat({ }: Props) {
       </div>
 
       {/* Input */}
-      <div style={{ display: 'flex', gap: '10px' }}>
+      <div style={{ display: 'flex', gap: '8px', padding: '12px 16px', borderTop: '1px solid rgba(79,195,247,0.12)' }}>
         <input
           ref={inputRef}
           type="text"
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleSend()}
-          placeholder="What's in the sky tonight from Brooklyn?"
+          placeholder="What's in the sky tonight?"
           disabled={loading}
           style={{
             flex: 1,
-            padding: '14px 18px',
-            background: '#0d1b2a',
-            border: '1px solid #1a3a5c',
-            borderRadius: '12px',
+            padding: '10px 14px',
+            background: 'rgba(13, 27, 42, 0.8)',
+            border: '1px solid rgba(79,195,247,0.2)',
+            borderRadius: '10px',
             color: '#e8f4fd',
-            fontSize: '14px',
+            fontSize: '13px',
             outline: 'none',
           }}
         />
@@ -181,20 +198,20 @@ export default function AstridChat({ }: Props) {
           onClick={handleSend}
           disabled={loading || !input.trim()}
           style={{
-            padding: '14px 24px',
-            background: loading ? '#1a3a5c' : '#4fc3f7',
+            padding: '10px 16px',
+            background: loading ? 'rgba(26,58,92,0.8)' : '#4fc3f7',
             color: '#050a0f',
             border: 'none',
-            borderRadius: '12px',
-            fontSize: '14px',
+            borderRadius: '10px',
+            fontSize: '13px',
             fontWeight: '600',
             cursor: loading ? 'wait' : 'pointer',
-            letterSpacing: '1px',
           }}
         >
           {loading ? '...' : 'Ask'}
         </button>
       </div>
+      </>}
     </div>
   )
 }
