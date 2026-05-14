@@ -9,7 +9,7 @@ cmds = [
 ]
 
 [phases.build]
-cmds = ["cd frontend && npm run build"]
+cmds = ["cd frontend && ./node_modules/.bin/vite build"]
 
 [start]
 cmd = "/opt/venv/bin/python manage.py migrate --noinput && /opt/venv/bin/python manage.py collectstatic --noinput && /opt/venv/bin/gunicorn stargazer.wsgi --bind 0.0.0.0:$PORT --workers 3"
